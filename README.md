@@ -112,7 +112,7 @@ LEFT JOIN  claims c on d.driver_id  = c.driver_id
 GROUP BY d.state;
 ```
 3. Pseudo phone number
-脱敏 'phone_number'，只保留后 4 位，前面用 ***-***- 如 +1-310-555-1234 → ***-***-1234
+脱敏 `phone_number`，只保留后 4 位，前面用 ***-***- 如 +1-310-555-1234 → ***-***-1234
 
 ```sql
 SELECT 
@@ -120,7 +120,7 @@ SELECT
 	concat("***-***- "||substr(phone_number,-4)) as phone_masked
 FROM drivers;
 ```
-SQLite doesn't support dynamic data masking or 'MD5()'
+SQLite doesn't support dynamic data masking or `MD5()`
 
 4. Find drivers with an average single claim amount > 5000
 找出平均单次 claim amount > 5000 的司机
@@ -159,7 +159,7 @@ where rn = 1
 order by driver_id;
 ```
 
-6. Find 'avg_harsh_event_count' for each driver in their past trips.
+6. Find `avg_harsh_event_count` for each driver in their past trips.
 统计每位司机在所有 trips 中的平均 harsh_event_count
 ```sql
 select 
@@ -185,8 +185,8 @@ from trips t
 join events e on t.trip_id = e.trip_id
 group by t.driver_id;
 ```
-8. Create a view, 'driver_daily_features'
-生成一个 “driver_daily_features” 视图（CTE 即可）
+8. Create a view, `driver_daily_features`
+生成一个 `driver_daily_features` 视图（CTE 即可）
 维度：driver_id, 日期
 特征：trip_cnt, total_km, harsh_event_cnt, night_trip_cnt
 
@@ -213,9 +213,13 @@ from driver_daily_features
 where date between '2020-01-01' and '2025-01-01';
 ```
 9. driver_level_info
+
 写一个查询返回：能安全发给国内团队的 driver-level 数据：
+
 不能含：phone_number, license_number, vin
+
 可含：driver_id（或 hash 过的 driver_key）、state、age、risk_segment、行为特征
+
 输出：pseudo_driver_key, state, age, risk_segment, avg_km_per_trip, harsh_events_per_100km,driver_level_claim_rate
 
 ```sql 
@@ -272,7 +276,107 @@ left join claim_level cl on d.driver_id = cl.driver_id
 group by d.driver_id;
 ```
 
+10. Check for orphan records
+做一个数据质量检查：检查是否存在 trip 记录中的 driver_id，在 drivers 表中不存在（孤儿记录）
 
+```sql
+select 
+	t.driver_id,
+	t.trip_id
+from trips t 
+left join drivers d on t.driver_id = d.driver_id
+where d.driver_id is null
+```
+
+11. List of high-risk drivers
+构造一个“高风险司机名单”：
+
+harsh_events_per_100km 高于全局平均
+
+claim_rate 高于全局平均
+
+夜间行程比例高
+
+```sql
+select 
+	driver_id,
+	round((sum(harsh_event_count)/sum(distance_km))*100,3) as avg_harsh_events_per_100km,  -- 1.048
+	round(sum(is_night_trip)*1.0/count(trip_id),3) as avg_night_trip_ratio          --0.316
+from trips
+
+select 
+	round(count(claim_id)*1.0/(select count(*) from trips),3) as avg_claim_ratio --0.178
+from claims 
+
+-------------------------------------------------------------------------------------------------
+with a as (select 
+	d.driver_id, 
+	d.state,
+	round((sum(t.harsh_event_count)/sum(t.distance_km))*100,3) as driver_level_harsh_events_per_100km,
+	round(sum(is_night_trip)*1.0/count(trip_id),3)as driver_level_night_trip_ratio
+from drivers d
+join trips t on d.driver_id = t.driver_id 
+group by d.driver_id),
+	
+b as (
+	select 
+		driver_id,
+		count(*) as number_of_claims
+	from claims 
+	group by driver_id ),
+
+c as (
+	select 
+		driver_id,
+		count(*) as number_of_trips
+	from trips 
+	group by driver_id)
+
+select 
+	a.driver_id,
+	a.state,
+	a.driver_level_harsh_events_per_100km,
+	a.driver_level_night_trip_ratio,
+	round(b.number_of_claims*1.0/c.number_of_trips,3) as claim_rate
+from a
+left join b on a.driver_id = b.driver_id
+left join c on a.driver_id = c.driver_id
+where 
+	driver_level_harsh_events_per_100km > 1.048 
+	AND driver_level_night_trip_ratio > 0.316 
+	AND claim_rate > 0.178
+
+```
+
+12. Dashboard for the operating team (by state).
+写一个“运营看板”的 SQL：按州输出
+
+```sql
+with x as (
+	select 
+		d.state,
+		round(avg(c.claim_amount),3) as avg_claim_amount,
+		count(distinct d.driver_id) as ppl_cnt_state,
+		count(distinct c.driver_id) as claims_cnt_state
+	from drivers d 
+	left join claims c on d.driver_id = c.driver_id
+	group by d.state
+)
+
+select 
+	d.state,
+	count(d.driver_id) as driver_cnt,
+	sum(t.distance_km) as total_km,
+	round((sum(t.harsh_event_count)/sum(t.distance_km))*100,3) as events_per_100km,
+	round(x.claims_cnt_state*1.0/x.ppl_cnt_state,3) as claim_rate, 
+	x.avg_claim_amount
+from drivers d
+left join trips t on d.driver_id = t.driver_id
+left join x on d.state = x.state
+group by d.state
+order by events_per_100km DESC;
+
+```
 
 
 ## Skills Highlighted 
