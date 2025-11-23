@@ -1,0 +1,31 @@
+repair_shop_id,shop_name,city,state,is_partner
+S001,Repair Shop S001,Austin,AZ,1
+S002,Repair Shop S002,Los Angeles,CA,0
+S003,Repair Shop S003,Austin,NY,1
+S004,Repair Shop S004,Seattle,IL,0
+S005,Repair Shop S005,Phoenix,AZ,0
+S006,Repair Shop S006,Chicago,FL,1
+S007,Repair Shop S007,Miami,TX,1
+S008,Repair Shop S008,Los Angeles,AZ,0
+S009,Repair Shop S009,San Jose,IL,1
+S010,Repair Shop S010,Chicago,AZ,0
+S011,Repair Shop S011,Chicago,CA,1
+S012,Repair Shop S012,San Francisco,NV,1
+S013,Repair Shop S013,Miami,TX,1
+S014,Repair Shop S014,San Jose,FL,1
+S015,Repair Shop S015,Chicago,TX,1
+S016,Repair Shop S016,Seattle,IL,0
+S017,Repair Shop S017,San Francisco,TX,1
+S018,Repair Shop S018,San Jose,FL,1
+S019,Repair Shop S019,Miami,IL,1
+S020,Repair Shop S020,San Francisco,FL,0
+S021,Repair Shop S021,Seattle,FL,0
+S022,Repair Shop S022,San Francisco,TX,0
+S023,Repair Shop S023,Phoenix,NV,1
+S024,Repair Shop S024,Phoenix,IL,1
+S025,Repair Shop S025,Miami,NY,1
+S026,Repair Shop S026,Phoenix,NV,1
+S027,Repair Shop S027,Seattle,CA,1
+S028,Repair Shop S028,San Jose,WA,1
+S029,Repair Shop S029,Los Angeles,CA,1
+S030,Repair Shop S030,Seattle,TX,1
